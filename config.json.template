@@ -1,0 +1,11 @@
+{
+  "API_KEY": "<YOUR_PD_API_KEY>",
+  "SCHEDULES": [
+    "Team A",
+    "Team B"
+  ],
+  "HOLIDAYS": [
+    "2020-01-01",
+    "2020-11-11"
+  ]
+}

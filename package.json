@@ -1,9 +1,9 @@
 {
   "name": "pagerduty-schedules-aggregator",
   "version": "1.0.0",
-  "description": "",
+  "description": "Pagerduty aggregator which allows to sum working and free days for every supporting person in team",
   "main": "index.js",
-  "author": "DEVELION Paweł Król",
+  "author": "DEVELION Paweł Król<kontakt@pawelkrol.pl>",
   "license": "MIT",
   "private": true,
   "scripts": {

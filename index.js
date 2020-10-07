@@ -1,12 +1,11 @@
-const fetch = require('node-fetch');
 const CONFIG = require('./config.json');
 const pdClient = require('node-pagerduty');
 const { exit } = require('process');
 const inquirer = require('inquirer');
 const { printTable } = require('console-table-printer');
 
-let pd;
 const HOLIDAYS = [];
+let pd;
 let USER_DATA = {};
 
 const init = async () => {
@@ -44,10 +43,12 @@ const gatherData = async () => {
       until.setMonth(until.getMonth()+1);
       until.setDate(1);
       until.setHours(0, 0, 0, 0);
+      
       if(answers.dateRange === 'previous month') {
         since.setMonth(since.getMonth()-1);
         until.setMonth(since.getMonth()-1); 
       }
+      
       USER_DATA.schedule_since = since;
       USER_DATA.schedule_until = until;
     });
@@ -55,6 +56,7 @@ const gatherData = async () => {
 
 const getCurrentUserFullName = async () => {
   const { body } = await pd.users.getCurrentUser();
+
   return JSON.parse(body).user.name;
 };
 
@@ -73,10 +75,11 @@ const getSchedule = async (scheduleId) => {
 const getSchedules = async (scheduleNames) => {
   const scheduleListRaw = await pd.schedules.listSchedule({ limit: 200 });
   const scheduleList = JSON.parse(scheduleListRaw.body).schedules;
-
   const promises = [];
+  
   await scheduleNames.forEach(async name => {
     const scheduleId = scheduleList.filter(object => object.name === name)[0].id;
+    
     promises.push(getSchedule(scheduleId));
   });
 
@@ -85,8 +88,10 @@ const getSchedules = async (scheduleNames) => {
 
 const sumFinalSchedules = (schedules) => {
   const dayCount = {};
+  
   schedules.forEach(schedule => {
     const finalScheduleEntries = schedule.final_schedule.rendered_schedule_entries;
+    
     finalScheduleEntries.forEach((entry) => {
       if (!Object.keys(dayCount).includes(entry.user.summary)) {
         dayCount[entry.user.summary] = {
@@ -97,17 +102,14 @@ const sumFinalSchedules = (schedules) => {
     
       const endDate = new Date(entry.end);
       const currentDate = new Date(entry.start);
+
       currentDate.setHours(10, 0, 0, 0);
-      // console.log('entry', entry);
+      
       while (currentDate < endDate) {
-        // console.log(`1: ${currentDate} - ${endDate}`);
         const dow = currentDate.getDay();
-        // console.log(`2: day of week: ${dow}`);
         if ([0, 6].includes(dow) || isHoliday(currentDate)) {
-          // console.log('3: adding holiday');
           dayCount[entry.user.summary].holidays++;
         } else {
-          // console.log('3: adding working day');
           dayCount[entry.user.summary].workingDays++;
         }
         currentDate.setDate(currentDate.getDate() + 1);
@@ -139,9 +141,7 @@ const printer = (result) => {
   console.log(`Holidays withing this range: `, HOLIDAYS.filter(h => 
     h>=USER_DATA.schedule_since && h<=USER_DATA.schedule_until
   ).map(h => getDateOnlyAsString(h)));
-  // console.log(result);
 
-  //Create a table
   const table = Object.keys(result).map(key => ({
     name: key,
     workingDays: result[key].workingDays,
@@ -154,7 +154,7 @@ const printer = (result) => {
   await init();
   await gatherData();
   const schedules = await getSchedules(CONFIG.SCHEDULES);
-  console.log(schedules);
   const result = sumFinalSchedules(schedules);
+
   printer(result);
 })();

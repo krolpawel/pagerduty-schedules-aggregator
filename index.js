@@ -46,7 +46,7 @@ const gatherData = async () => {
       
       if(answers.dateRange === 'previous month') {
         since.setMonth(since.getMonth()-1);
-        until.setMonth(since.getMonth()-1); 
+        until.setMonth(until.getMonth()-1); 
       }
       
       USER_DATA.schedule_since = since;

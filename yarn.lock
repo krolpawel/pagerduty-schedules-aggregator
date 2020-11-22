@@ -483,10 +483,10 @@ console-control-strings@^1.0.0, console-control-strings@^1.1.0, console-control-
   resolved "https://registry.yarnpkg.com/console-control-strings/-/console-control-strings-1.1.0.tgz#3d7cf4464db6446ea644bf4b39507f9851008e8e"
   integrity sha1-PXz0Rk22RG6mRL9LOVB/mFEAjo4=
 
-console-table-printer@^2.4.16:
-  version "2.4.16"
-  resolved "https://registry.yarnpkg.com/console-table-printer/-/console-table-printer-2.4.16.tgz#5c4a574ec00cb06e065a6dcf06d835c9088498cd"
-  integrity sha512-ch3gWJLa5CjF17vHO93iRZnWQ3d8aj6dWhbE8wRvQBR4Se1sY2giAttatiNjzGFbMOXLRR4gmhcsQ85TTqwoDg==
+console-table-printer@^2.5.1:
+  version "2.5.1"
+  resolved "https://registry.yarnpkg.com/console-table-printer/-/console-table-printer-2.5.1.tgz#dfbd7cc9b5a0e9bae8f88e2d8061fad740867bdd"
+  integrity sha512-mBHNuisXIcYPkyjBfV/LUox+JbDFZYax4NHHzZJSh7eaprArNqIZz7iUFNfcfJtfJlOtWwsbbqyF7+42Ztsfgw==
 
 copy-concurrently@^1.0.0:
   version "1.0.5"

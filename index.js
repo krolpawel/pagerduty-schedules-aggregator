@@ -2,7 +2,7 @@ const CONFIG = require('./config.json');
 const pdClient = require('node-pagerduty');
 const { exit } = require('process');
 const inquirer = require('inquirer');
-const { printTable } = require('console-table-printer');
+const { Table } = require('console-table-printer');
 
 const HOLIDAYS = [];
 let pd;
@@ -38,12 +38,6 @@ const gatherData = async () => {
       let since = new Date(Date.now());
       let until = new Date(Date.now());
       
-      since.setDate(1);
-      since.setHours(0, 0, 0, 0);
-      until.setMonth(until.getMonth()+1);
-      until.setDate(1);
-      until.setHours(0, 0, 0, 0);
-      
       since.setUTCDate(1);
       since.setUTCHours(0, 0, 0, 0);
       until.setUTCMonth(until.getMonth()+1);
@@ -69,8 +63,8 @@ const getSchedule = async (scheduleId) => {
   const scheduleRaw = await pd.schedules.getSchedule(
     scheduleId, 
     { 
-      since: getDateOnlyAsString(USER_DATA.schedule_since),
-      until: getDateOnlyAsString(USER_DATA.schedule_until),
+      since: USER_DATA.schedule_since,
+      until: USER_DATA.schedule_until,
     }
   );
 
@@ -96,10 +90,10 @@ const sumFinalSchedules = (schedules) => {
   
   schedules.forEach(schedule => {
     const finalScheduleEntries = schedule.final_schedule.rendered_schedule_entries;
-    
     finalScheduleEntries.forEach((entry) => {
       if (!Object.keys(dayCount).includes(entry.user.summary)) {
         dayCount[entry.user.summary] = {
+          team: schedule.summary,
           workingDays: 0,
           holidays: 0,
           days: [],
@@ -109,17 +103,22 @@ const sumFinalSchedules = (schedules) => {
       const endDate = new Date(entry.end);
       const currentDate = new Date(entry.start);
 
-      currentDate.setHours(10, 0, 0, 0);
+      currentDate.setUTCHours(10, 0, 0, 0);
       
       while (currentDate < endDate) {
-        const dow = currentDate.getDay();
-        if ([0, 6].includes(dow) || isHoliday(currentDate)) {
-          dayCount[entry.user.summary].holidays++;
-        } else {
-          dayCount[entry.user.summary].workingDays++;
+        const lastSecondOfTheDay = new Date(currentDate);
+        lastSecondOfTheDay.setUTCHours(23);
+        lastSecondOfTheDay.setUTCMinutes(59);
+        lastSecondOfTheDay.setUTCSeconds(59);
+        if(lastSecondOfTheDay - currentDate > 7200000 && endDate - currentDate > 7200000) {
+          const dow = currentDate.getDay();
+          if ([0, 6].includes(dow) || isHoliday(currentDate)) {
+            dayCount[entry.user.summary].holidays++;
+          } else {
+            dayCount[entry.user.summary].workingDays++;
+          }
+          dayCount[entry.user.summary].days.push(getDateOnlyAsString(currentDate));
         }
-        dayCount[entry.user.summary].days.push(getDateOnlyAsString(currentDate));
-
         currentDate.setDate(currentDate.getDate() + 1);
       }
     });
@@ -139,30 +138,36 @@ const isHoliday = (date) => {
 }
 
 const getDateOnlyAsString = (fullDate) => {
-  const date = fullDate.getDate().toString().length === 1 ? `0${fullDate.getDate()}` : fullDate.getDate();
-  return `${fullDate.getFullYear()}-${(fullDate.getMonth()+1)%12}-${date}`;
+  const date = fullDate.getUTCDate().toString().length === 1 ? `0${fullDate.getUTCDate()}` : fullDate.getUTCDate();
+  return `${fullDate.getFullYear()}-${(fullDate.getUTCMonth()+1)}-${date}`;
 }
 
 const printer = (result) => {
   console.log('------------------------------------------------');
   console.log(`Date range: ${getDateOnlyAsString(USER_DATA.schedule_since)} - ${getDateOnlyAsString(USER_DATA.schedule_until)}`);
 
-  const holidaysWIthinRange = HOLIDAYS
+  const holidaysWithinRange = HOLIDAYS
     .filter(h => h>=USER_DATA.schedule_since && h<=USER_DATA.schedule_until)
     .map(h => getDateOnlyAsString(h));
-  if(!holidaysWIthinRange.length) {
+  if(!holidaysWithinRange.length) {
     console.log('No holidays withing given range');
   } else {
-    console.log(`Holidays within given range: ${holidaysWIthinRange}`);
+    console.log(`Holidays within given range: ${holidaysWithinRange}`);
   }
 
   const table = Object.keys(result).map(key => ({
-    name: key,
+    team: result[key].team,
+    name: key.split(' ').reverse().join(' ').trim(),
     workingDays: result[key].workingDays,
     holidays: result[key].holidays,
-    details: result[key].days,
+    details: CONFIG.SHOW_DETAILS ? result[key].days : undefined,
   }));
-  printTable(table);
+  const tab = new Table({
+    sort: (row1, row2) => row2.name < row1.name ? 1 : row2.name > row1.name ? -1 : 0
+  });
+
+  tab.addRows(table);
+  tab.printTable();
 };
 
 (async () => {

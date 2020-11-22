@@ -44,6 +44,11 @@ const gatherData = async () => {
       until.setDate(1);
       until.setHours(0, 0, 0, 0);
       
+      since.setUTCDate(1);
+      since.setUTCHours(0, 0, 0, 0);
+      until.setUTCMonth(until.getMonth()+1);
+      until.setUTCDate(1);
+      until.setUTCHours(0, 0, 0, 0);
       if(answers.dateRange === 'previous month') {
         since.setMonth(since.getMonth()-1);
         until.setMonth(until.getMonth()-1); 
@@ -97,6 +102,7 @@ const sumFinalSchedules = (schedules) => {
         dayCount[entry.user.summary] = {
           workingDays: 0,
           holidays: 0,
+          days: [],
         };
       }
     
@@ -112,6 +118,8 @@ const sumFinalSchedules = (schedules) => {
         } else {
           dayCount[entry.user.summary].workingDays++;
         }
+        dayCount[entry.user.summary].days.push(getDateOnlyAsString(currentDate));
+
         currentDate.setDate(currentDate.getDate() + 1);
       }
     });
@@ -138,14 +146,21 @@ const getDateOnlyAsString = (fullDate) => {
 const printer = (result) => {
   console.log('------------------------------------------------');
   console.log(`Date range: ${getDateOnlyAsString(USER_DATA.schedule_since)} - ${getDateOnlyAsString(USER_DATA.schedule_until)}`);
-  console.log(`Holidays withing this range: `, HOLIDAYS.filter(h => 
-    h>=USER_DATA.schedule_since && h<=USER_DATA.schedule_until
-  ).map(h => getDateOnlyAsString(h)));
+
+  const holidaysWIthinRange = HOLIDAYS
+    .filter(h => h>=USER_DATA.schedule_since && h<=USER_DATA.schedule_until)
+    .map(h => getDateOnlyAsString(h));
+  if(!holidaysWIthinRange.length) {
+    console.log('No holidays withing given range');
+  } else {
+    console.log(`Holidays within given range: ${holidaysWIthinRange}`);
+  }
 
   const table = Object.keys(result).map(key => ({
     name: key,
     workingDays: result[key].workingDays,
     holidays: result[key].holidays,
+    details: result[key].days,
   }));
   printTable(table);
 };

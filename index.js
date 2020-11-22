@@ -44,7 +44,7 @@ const gatherData = async () => {
       until.setUTCDate(1);
       until.setUTCDate(until.getUTCDate() -1);
       until.setUTCHours(23, 59, 59, 999);
-      
+
       if(answers.dateRange === 'previous month') {
         since.setMonth(since.getMonth()-1);
         until.setMonth(until.getMonth()-1); 
@@ -93,15 +93,6 @@ const sumFinalSchedules = (schedules) => {
   schedules.forEach(schedule => {
     const finalScheduleEntries = schedule.final_schedule.rendered_schedule_entries;
     finalScheduleEntries.forEach((entry) => {
-      if (!Object.keys(dayCount).includes(entry.user.summary)) {
-        dayCount[entry.user.summary] = {
-          team: schedule.summary,
-          workingDays: 0,
-          holidays: 0,
-          days: [],
-        };
-      }
-    
       const endDate = new Date(entry.end);
       const currentDate = new Date(entry.start);
 
@@ -114,6 +105,16 @@ const sumFinalSchedules = (schedules) => {
         lastSecondOfTheDay.setUTCSeconds(59);
         if(lastSecondOfTheDay - currentDate > 7200000 && endDate - currentDate > 7200000) {
           const dow = currentDate.getDay();
+          
+          if (!Object.keys(dayCount).includes(entry.user.summary)) {
+            dayCount[entry.user.summary] = {
+              team: schedule.summary,
+              workingDays: 0,
+              holidays: 0,
+              days: [],
+            };
+          }
+          
           if ([0, 6].includes(dow) || isHoliday(currentDate)) {
             dayCount[entry.user.summary].holidays++;
           } else {
@@ -144,7 +145,7 @@ const getDateOnlyAsString = (fullDate) => {
   return `${fullDate.getFullYear()}-${(fullDate.getUTCMonth()+1)}-${date}`;
 }
 
-const printer = (result) => {
+const printer = (content) => {
   console.log('------------------------------------------------');
   console.log(`Date range: ${getDateOnlyAsString(USER_DATA.schedule_since)} - ${getDateOnlyAsString(USER_DATA.schedule_until)}`);
 
@@ -157,20 +158,38 @@ const printer = (result) => {
     console.log(`Holidays within given range: ${holidaysWithinRange}`);
   }
 
-  const table = Object.keys(result).map(key => ({
-    team: result[key].team,
-    name: key.split(' ').reverse().join(' ').trim(),
-    workingDays: result[key].workingDays,
-    holidays: result[key].holidays,
-    details: CONFIG.SHOW_DETAILS ? result[key].days : undefined,
-  }));
-  const tab = new Table({
-    sort: (row1, row2) => row2.name < row1.name ? 1 : row2.name > row1.name ? -1 : 0
+  const contentToPrint = CONFIG.DIVIDE_BY_TEAMS ? divideByTeam(content) : { all: content };
+
+  Object.keys(contentToPrint).forEach(team => {
+    const rows = Object.keys(contentToPrint[team]).map((key, index) => ({
+      team: contentToPrint[team][key].team,
+      name: key.split(' ').reverse().join(' ').trim(),
+      workingDays: contentToPrint[team][key].workingDays,
+      holidays: contentToPrint[team][key].holidays,
+      ...(CONFIG.SHOW_DETAILS) && { details: contentToPrint[team][key].days },
+    }));
+    const tab = new Table({
+      sort: (row1, row2) => row2.name < row1.name ? 1 : row2.name > row1.name ? -1 : 0
+    });
+  
+    tab.addRows(rows);
+    tab.printTable();
+  })
+};
+
+const divideByTeam = (content) => {
+  const contentDividedByTeam = {};
+  Object.keys(content).forEach(item => {
+    if(!contentDividedByTeam[content[item].team]) {
+      contentDividedByTeam[content[item].team] = [];
+    }
+    contentDividedByTeam[content[item].team][item] = content[item];
   });
 
-  tab.addRows(table);
-  tab.printTable();
-};
+  console.log(contentDividedByTeam);
+
+  return contentDividedByTeam;
+}
 
 (async () => {
   await init();

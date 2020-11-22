@@ -42,7 +42,9 @@ const gatherData = async () => {
       since.setUTCHours(0, 0, 0, 0);
       until.setUTCMonth(until.getMonth()+1);
       until.setUTCDate(1);
-      until.setUTCHours(0, 0, 0, 0);
+      until.setUTCDate(until.getUTCDate() -1);
+      until.setUTCHours(23, 59, 59, 999);
+      
       if(answers.dateRange === 'previous month') {
         since.setMonth(since.getMonth()-1);
         until.setMonth(until.getMonth()-1); 

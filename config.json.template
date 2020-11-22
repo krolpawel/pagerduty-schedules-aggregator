@@ -4,6 +4,8 @@
     "Team A",
     "Team B"
   ],
+  "DIVIDE_BY_TEAMS": false,
+  "SHOW_DETAILS": false,
   "HOLIDAYS": [
     "2020-11-01",
     "2020-11-11",

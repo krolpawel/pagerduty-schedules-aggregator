@@ -1,8 +1,10 @@
-const CONFIG = require('./config.json');
+const ExcelJS = require('exceljs');
 const pdClient = require('node-pagerduty');
 const { exit } = require('process');
 const inquirer = require('inquirer');
 const { Table } = require('console-table-printer');
+
+const CONFIG = require('./config.json');
 
 const HOLIDAYS = [];
 let pd;
@@ -144,7 +146,7 @@ const getDateOnlyAsString = (fullDate) => {
   return `${fullDate.getFullYear()}-${(fullDate.getUTCMonth()+1)}-${date}`;
 }
 
-const printer = (content) => {
+const printer = async (content, screen = false, excel = false) => {
   console.log('------------------------------------------------');
   console.log(`Date range: ${getDateOnlyAsString(USER_DATA.schedule_since)} - ${getDateOnlyAsString(USER_DATA.schedule_until)}`);
 
@@ -159,21 +161,50 @@ const printer = (content) => {
 
   const contentToPrint = CONFIG.DIVIDE_BY_TEAMS ? divideByTeam(content) : { all: content };
 
-  Object.keys(contentToPrint).forEach(team => {
-    const rows = Object.keys(contentToPrint[team]).map((key, index) => ({
-      team: contentToPrint[team][key].team,
-      name: key.split(' ').reverse().join(' ').trim(),
-      workingDays: contentToPrint[team][key].workingDays,
-      holidays: contentToPrint[team][key].holidays,
-      ...(CONFIG.SHOW_DETAILS) && { details: contentToPrint[team][key].days },
-    }));
-    const tab = new Table({
-      sort: (row1, row2) => row2.name < row1.name ? 1 : row2.name > row1.name ? -1 : 0
+  if(screen) {
+    Object.keys(contentToPrint).forEach(team => {
+      const rows = Object.keys(contentToPrint[team]).map((key, index) => ({
+        team: contentToPrint[team][key].team,
+        name: key.split(' ').reverse().join(' ').trim(),
+        workingDays: contentToPrint[team][key].workingDays,
+        holidays: contentToPrint[team][key].holidays,
+        ...(CONFIG.SHOW_DETAILS) && { details: contentToPrint[team][key].days },
+      }));
+      const tab = new Table({
+        sort: (row1, row2) => row2.name < row1.name ? 1 : row2.name > row1.name ? -1 : 0
+      });
+      
+      tab.addRows(rows);
+      tab.printTable();
     });
-  
-    tab.addRows(rows);
-    tab.printTable();
-  })
+  }
+
+  if(excel) {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(`PD ${USER_DATA.schedule_since.getFullYear()}.${USER_DATA.schedule_since.getUTCMonth()+1}`);
+    
+    workbook.creator = 'PD schedule aggregator';
+    workbook.created = new Date(Date.now());
+    workbook.modified = new Date(Date.now());
+
+    sheet.columns = [
+      { header: 'Team', key: 'team', width: 20 },
+      { header: 'Name', key: 'name', width: 28 },
+      { header: 'Working Days', key: 'wd' },
+      { header: 'Holidays', key: 'h' },
+    ];
+
+    Object.keys(content).forEach((key) => {
+      sheet.addRow({
+        team: content[key].team,
+        name: key.split(' ').reverse().join(' ').trim(),
+        wd: content[key].workingDays,
+        h: content[key].holidays,
+      });
+    });
+
+    await workbook.xlsx.writeFile('./output.xlsx');
+  }
 };
 
 const divideByTeam = (content) => {
@@ -196,5 +227,6 @@ const divideByTeam = (content) => {
   const schedules = await getSchedules(CONFIG.SCHEDULES);
   const result = sumFinalSchedules(schedules);
 
-  printer(result);
+  await printer(result, true, true);
+
 })();

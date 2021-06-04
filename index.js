@@ -40,7 +40,7 @@ const gatherData = async () => {
       
       since.setUTCDate(1);
       since.setUTCHours(0, 0, 0, 0);
-      until.setUTCMonth(until.getMonth()+1);
+      until.setUTCMonth(until.getUTCMonth()+1);
       until.setUTCDate(1);
       until.setUTCDate(until.getUTCDate() -1);
       until.setUTCHours(23, 59, 59, 999);
@@ -49,7 +49,6 @@ const gatherData = async () => {
         since.setMonth(since.getMonth()-1);
         until.setMonth(until.getMonth()-1); 
       }
-      
       USER_DATA.schedule_since = since;
       USER_DATA.schedule_until = until;
     });

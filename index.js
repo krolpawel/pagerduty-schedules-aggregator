@@ -88,6 +88,15 @@ const getSchedules = async (scheduleNames) => {
   return Promise.all(promises); 
 }
 
+const getLastSecondOfTheDay = (date) => {
+  const lastSecondOfTheDay = new Date(date);
+  
+  lastSecondOfTheDay.setUTCHours(23);
+  lastSecondOfTheDay.setUTCMinutes(59);
+  lastSecondOfTheDay.setUTCSeconds(59);
+
+  return lastSecondOfTheDay;
+}
 const sumFinalSchedules = (schedules) => {
   const dayCount = {};
   
@@ -100,10 +109,7 @@ const sumFinalSchedules = (schedules) => {
       currentDate.setUTCHours(10, 0, 0, 0);
       
       while (currentDate < endDate) {
-        const lastSecondOfTheDay = new Date(currentDate);
-        lastSecondOfTheDay.setUTCHours(23);
-        lastSecondOfTheDay.setUTCMinutes(59);
-        lastSecondOfTheDay.setUTCSeconds(59);
+        const lastSecondOfTheDay = getLastSecondOfTheDay(currentDate);
         if(lastSecondOfTheDay - currentDate > 7200000 && endDate - currentDate > 7200000) {
           const dow = currentDate.getDay();
           
